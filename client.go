@@ -285,18 +285,12 @@ func (c *Client) baseURLWithAzureDeployment(baseURL, suffix, model string) (newB
 }
 
 func (c *Client) handleErrorResp(resp *http.Response) error {
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("error, reading response body: %w", err)
-	}
 	var errRes ErrorResponse
-	err = json.Unmarshal(body, &errRes)
+	err := json.NewDecoder(resp.Body).Decode(&errRes)
 	if err != nil || errRes.Error == nil {
 		reqErr := &RequestError{
-			HTTPStatus:     resp.Status,
 			HTTPStatusCode: resp.StatusCode,
 			Err:            err,
-			Body:           body,
 		}
 		if errRes.Error != nil {
 			reqErr.Err = errRes.Error
@@ -304,7 +298,6 @@ func (c *Client) handleErrorResp(resp *http.Response) error {
 		return reqErr
 	}
 
-	errRes.Error.HTTPStatus = resp.Status
 	errRes.Error.HTTPStatusCode = resp.StatusCode
 	return errRes.Error
 }
